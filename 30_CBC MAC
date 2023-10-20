@@ -1,0 +1,44 @@
+#include <stdio.h>
+#include <string.h>
+#include <openssl/aes.h>
+
+void cbc_mac(const unsigned char *input, const unsigned char *key, unsigned char *mac, size_t length) {
+    AES_KEY aesKey;
+    AES_set_encrypt_key(key, 128, &aesKey);
+
+    unsigned char xorBlock[AES_BLOCK_SIZE];
+    unsigned char lastBlock[AES_BLOCK_SIZE];
+    memset(xorBlock, 0, AES_BLOCK_SIZE);
+    memset(lastBlock, 0, AES_BLOCK_SIZE);
+
+    for (size_t i = 0; i < length; i += AES_BLOCK_SIZE) {
+        for (int j = 0; j < AES_BLOCK_SIZE; j++) {
+            xorBlock[j] = input[i + j] ^ lastBlock[j];
+        }
+
+        AES_encrypt(xorBlock, lastBlock, &aesKey);
+    }
+
+    memcpy(mac, lastBlock, AES_BLOCK_SIZE);
+}
+
+int main() {
+    // Your message and key
+    const char *message = "This is a CBC-MAC example.";
+    const unsigned char key[16] = "0123456789abcdef";
+
+    size_t messageLen = strlen(message);
+    unsigned char mac[AES_BLOCK_SIZE];
+
+    // Calculate the CBC-MAC
+    cbc_mac(message, key, mac, messageLen);
+
+    printf("Message: %s\n", message);
+    printf("CBC-MAC (hex): ");
+    for (int i = 0; i < AES_BLOCK_SIZE; i++) {
+        printf("%02X", mac[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
